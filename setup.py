@@ -29,6 +29,9 @@ setup(
     entry_points={
         'console_scripts': [
             'galera_initiator = galera_initiator:main',
+            'galera_check = galera_check:main',
+            'galera_status = galera_check:status',
+            'galera_seqno = galera_check:seqno',
         ],
     },
 )
