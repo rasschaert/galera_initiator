@@ -31,5 +31,4 @@ setup(
             'galera_initiator = galera_initiator.galera_initiator',
         ],
     },
-    install_requires=['netsnmp'],
 )
