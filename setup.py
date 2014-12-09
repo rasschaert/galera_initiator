@@ -28,7 +28,7 @@ setup(
     include_package_data=True,
     entry_points={
         'console_scripts': [
-            'galera_initiator = galera_initiator.galera_initiator:main',
+            'galera_initiator = galera_initiator:main',
         ],
     },
 )
