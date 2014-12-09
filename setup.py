@@ -28,7 +28,7 @@ setup(
     include_package_data=True,
     entry_points={
         'console_scripts': [
-            'galera-initiator = galera-initiator.galera-initiator',
+            'galera_initiator = galera_initiator.galera_initiator',
         ],
     },
     install_requires=['netsnmp>=5.5'],
