@@ -8,7 +8,7 @@ from setuptools import setup, find_packages
 
 
 setup(
-    name='Galera Initiator',
+    name='GaleraInitiator',
     version='0.1.0',
     description='Automatically join, bootstrap or recover a Galera cluster.',
     author='Kenny Rasschaert',
@@ -31,5 +31,5 @@ setup(
             'galera_initiator = galera_initiator.galera_initiator',
         ],
     },
-    install_requires=['netsnmp>=5.5'],
+    install_requires=['netsnmp'],
 )
