@@ -18,6 +18,8 @@ eligible to bootstap a cluster.
 This script attempts to automate this process.
 
 """
+
+
 from __future__ import print_function
 import sys
 import subprocess

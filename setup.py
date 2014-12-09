@@ -1,6 +1,6 @@
 #!/usr/bin/env python
 """
-Galera-initiator package distribution using Setuptools.
+Galera Initiator package distribution using Setuptools.
 """
 
 
@@ -13,7 +13,7 @@ setup(
     description='Automatically join, bootstrap or recover a Galera cluster.',
     author='Kenny Rasschaert',
     author_email='kenny@kennyrasschaert.be',
-    url='https://github.com/rasschaert/galera-initiator',
+    url='https://github.com/rasschaert/galera_initiator',
     license='MIT',
     classifiers=[
         'Development Status :: 2 - Pre-Alpha',
@@ -28,7 +28,7 @@ setup(
     include_package_data=True,
     entry_points={
         'console_scripts': [
-            'galera_initiator = galera_initiator:main',
+            'galera_init = galera_init:main',
             'galera_status = galera_check:status',
             'galera_seqno = galera_check:seqno',
         ],
