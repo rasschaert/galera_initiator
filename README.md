@@ -28,6 +28,10 @@ Please understand that Galera replication is not an acceptable substitute for fr
 ###Installation
 ```pip install -U git+https://github.com/rasschaert/galera_initiator.git```
 
+Dependencies:
+- net-snmp python bindings
+- psutil
+
 ###Usage
 ####galera_init
 Start mysqld, either by joining an cluster existing cluster or by boostrapping a new one.
@@ -39,12 +43,11 @@ Requires either the 'seqno' or the 'status' parameter.
 Calling galera_check with the seqno option returns the current log position on the local cluster node. This value is either retrieved from the grastate.dat file or recovered from a failed cluster by running mysqld with the ```--wsrep-recover``` option. If the seqno can't be found or recovered, the value returned will be the same of that of a fresh cluster node: -1.
 
 #####galera_check status
-Calling galera_check with the status option returns a one-word string status code that reflects the status of the local cluster node. Possible values:
+Calling galera_check with the status option returns a one-word string status code that reflects the status of the local cluster node. Possible values in order of precedence:
 
 Status        | Meaning
 --------------|----------
-running       | mysqld is running, member of a cluster
-stopped       | mysqld is stopped
-initiating    | galera_init is running, will possibly soon bootstrap or join a cluster
 bootstrapping | mysqld is starting, bootstrapping a new cluster
-starting      | mysqld is starting, joining a cluster
+running       | mysqld is running, member of a cluster
+initiating    | galera_init is running, will possibly soon bootstrap or join a cluster
+stopped       | mysqld is stopped
