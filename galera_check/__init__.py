@@ -8,6 +8,8 @@ Report the seqno or server status.
 from __future__ import print_function
 import sys
 import psutil
+import ConfigParser
+import io
 
 DEBUG = True
 
@@ -46,7 +48,7 @@ def is_galera_init_process_running(pid_list):
 
 def status():
     """
-    Return a word describing the status of mysqld or the initiator script.
+    Print a word describing the status of mysqld or the initiator script.
 
     """
     # Get a list of all currently running processes.
@@ -69,8 +71,23 @@ def status():
 
 
 def seqno():
-    """Return the log position of the database."""
-    print(-1)
+    """Print the log position of the database."""
+    grastate_file_path = "/var/lib/mysql/grastate.dat"
+    try:
+        grastate_file = open(grastate_file_path)
+    except IOError:
+        print(-1)
+        sys.exit(0)
+    # The grastate.dat file is technically not valid ini, because it doesn't
+    # have a header. Prepend a header so ConfigParser doesn't notice.
+    # http://stackoverflow.com/questions/2819696/
+    grastate_ini = u'[grastate]\n'+''.join([x for x in grastate_file])
+    config = ConfigParser.RawConfigParser()
+    config.readfp(io.StringIO(grastate_ini))
+    # Look up and print the seqno.
+    print(config.get("grastate", "seqno"))
+    grastate_file.close()
+    sys.exit(0)
 
 
 def main(argv):
