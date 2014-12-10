@@ -23,9 +23,9 @@ This script attempts to automate this process.
 from __future__ import print_function
 import sys
 import subprocess
-import re
 import time
 import netsnmp
+import ConfigParser
 
 DEBUG = True
 STATUS_TIMEOUT = 1
@@ -46,26 +46,25 @@ def error_print(string):
 def parse_config():
     """Parse the galera.cnf configuration file."""
     config_file_path = "/etc/my.cnf.d/galera.cnf"
+    config = ConfigParser.RawConfigParser()
+    config.read(config_file_path)
     try:
-        config_file = open(config_file_path, "r")
-    except IOError:
-        error_print("Could not open %s. Make sure it exists." %
-                    config_file_path)
-        exit_boostrapper(False)
-    for line in config_file:
-        # Find the line with the cluster address
-        cluster_address_match = \
-            re.search(r"wsrep_cluster_address\s*=\s*gcomm://(.*)", line)
-        if cluster_address_match:
-            # The first group is a list of comma-separated hosts
-            # Remove the spaces, if any, and split on the comma
-            nodes = cluster_address_match.group(1).replace(" ", "").split(",")
-        node_address_match = re.search(r"wsrep_node_address\s*=\s*(.*)", line)
-        if node_address_match:
-            # The first group is the local host
-            # Remove the spaces, if any
-            local_node = node_address_match.group(1).replace(" ", "")
-    config_file.close()
+        # Look up the cluster_address.
+        cluster_address = config.get("galera", "wsrep_cluster_address")
+    # If the file doesn't contain that setting, quit.
+    except ConfigParser.NoOptionError:
+        error_print("Couldn't find wsrep_cluster_address setting in %s" %
+                    (config_file_path))
+        exit_script(1)
+    nodes = cluster_address.replace("gcomm://", "").split(",")
+    try:
+        # Look up the node_address.
+        local_node = config.get("galera", "wsrep_node_address")
+    # If the file doesn't contain that setting, quit.
+    except ConfigParser.NoOptionError:
+        error_print("Couldn't find wsrep_node_address setting in %s" %
+                    (config_file_path))
+        exit_script(1)
     return (local_node, nodes)
 
 
@@ -134,9 +133,9 @@ def bootstrap_cluster():
     return exit_code
 
 
-def exit_boostrapper(code=0):
+def exit_script(code=0):
     """Exit this script."""
-    print("Exiting bootstrapper.")
+    print("Exiting script.")
     sys.exit(code)
 
 
@@ -147,9 +146,9 @@ def main():
     if not local_status == "initiating":
         if local_status == "stopped":
             error_print("Something is wrong with the galera-check script.")
-            exit_boostrapper(1)
+            exit_script(1)
         print("Local node is already active. Nothing to do.")
-        exit_boostrapper()
+        exit_script()
     debug_print("Going to sleep for a while to prevent race conditions.")
     # Sleep the time it takes to get the seqno + the time it takes to get
     # the status for each node in the list
@@ -169,11 +168,11 @@ def main():
             debug_print("Status on node %s is %s." %
                         (node, node_status))
             if node_status == "started" or node_status == "starting":
-                exit_boostrapper(join_cluster())
+                exit_script(join_cluster())
             elif node_status == "bootstrapping":
                 print("Waiting for %s to finish bootstrapping." % (node))
                 time.sleep(10)
-                exit_boostrapper(join_cluster())
+                exit_script(join_cluster())
             elif node_status == "unreachable":
                 # If a node is unreachable, we can't ask for its seqno
                 pass
@@ -198,9 +197,9 @@ def main():
                     break
     debug_print("Exited node processing loop.")
     if eligible:
-        exit_boostrapper(bootstrap_cluster())
+        exit_script(bootstrap_cluster())
     else:
-        exit_boostrapper()
+        exit_script()
 
 
 if __name__ == '__main__':
