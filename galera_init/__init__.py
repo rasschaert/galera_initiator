@@ -28,8 +28,8 @@ import time
 import netsnmp
 
 DEBUG = True
-STATUS_TIMEOUT = 1000000
-SEQNO_TIMEOUT = 6000000
+STATUS_TIMEOUT = 1
+SEQNO_TIMEOUT = 6
 
 
 def debug_print(string):
@@ -83,12 +83,12 @@ def string_to_oid(name):
     return ".".join([oid_prefix, str(len(name))] + ascii_values)
 
 
-def snmp(oid, host, timeout=1000000):
+def snmp(oid, host, timeout=1):
     """Perform an SNMP lookup of an OID on a host, return the result."""
     debug_print("Quering SNMP agent on %s for OID '%s'." % (host, oid))
     var = netsnmp.Varbind(oid)
     result = netsnmp.snmpget(var, Version=2, DestHost=host, Community="public",
-                             Timeout=timeout, Retries=0)
+                             Timeout=(timeout * 1000000), Retries=0)
     debug_print("SNMP lookup returned result '%s'." % (result[0]))
     return result[0]
 
