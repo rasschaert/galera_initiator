@@ -15,6 +15,8 @@ This process is relatively simple but cumbersome. Since it requires manual opera
 ####Solution
 The galera_check script can be used to determine the status and log position of an individual node. By exposing this script over a public interface such as an SNMP agent or CGI, the galera_init script can make an informed decision on wether or not to bootstrap a new cluster or to join an existing one.
 
+The program logic of galera_init is laid out in the flowchart at the bottom of this document.
+
 
 ####Drawbacks
 In certain failure scenarios, the galera_init will make decisions based on incomplete information.
@@ -51,3 +53,6 @@ bootstrapping | mysqld is starting, bootstrapping a new cluster
 running       | mysqld is running, member of a cluster
 initiating    | galera_init is running, will possibly soon bootstrap or join a cluster
 stopped       | mysqld is stopped
+
+###Flowchart
+![galera-initiation-logic](http://i.imgur.com/RXTZLnH.png)
