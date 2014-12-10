@@ -10,6 +10,8 @@ import sys
 import psutil
 import ConfigParser
 import io
+import subprocess
+import re
 
 DEBUG = True
 
@@ -25,7 +27,7 @@ def error_print(string):
     print("ERROR: " + string, file=sys.stderr)
 
 
-def is_boostrap_process_running(pid_list):
+def is_boostrap_process_running(pid_list=psutil.get_pid_list()):
     """
     Check whether the mysql init script is running with the
     --wsrep-new-cluster option. Return a boolean.
@@ -36,12 +38,12 @@ def is_boostrap_process_running(pid_list):
                                        pid in pid_list]
 
 
-def is_mysqld_process_running(pid_list):
+def is_mysqld_process_running(pid_list=psutil.get_pid_list()):
     """Check whether the mysqld process is running. Return a boolean."""
     return "mysqld" in [psutil.Process(pid).name for pid in pid_list]
 
 
-def is_galera_init_process_running(pid_list):
+def is_galera_init_process_running(pid_list=psutil.get_pid_list()):
     """Check whether the galera_init process is running. Return a boolean."""
     return "galera_init" in [psutil.Process(pid).name for pid in pid_list]
 
@@ -76,7 +78,7 @@ def seqno():
     try:
         grastate_file = open(grastate_file_path)
     except IOError:
-        default_seqno()
+        recover_seqno()
     # The grastate.dat file is technically not valid ini, because it doesn't
     # have a header. Prepend a header so ConfigParser doesn't notice.
     # http://stackoverflow.com/questions/2819696/
@@ -88,11 +90,19 @@ def seqno():
         print(config.get("grastate", "seqno"))
     # If the grastate.dat file exists but doesn't contain a seqno, use default.
     except ConfigParser.NoOptionError:
-        default_seqno()
+        recover_seqno()
 
 
-def default_seqno():
+def recover_seqno():
     """Print -1 when the real seqno can't be determined."""
+    if not is_mysqld_process_running():
+        output = subprocess.check_output(['/usr/bin/mysqld_safe',
+                                          '--wsrep-recover'])
+        for line in output.split('\n'):
+            recovered_match = re.search(r"WSREP: Recovered position(.*)", line)
+            if recovered_match:
+                print(recovered_match.group(1).split(":")[1])
+        sys.exit(0)
     print(-1)
     sys.exit(0)
 
