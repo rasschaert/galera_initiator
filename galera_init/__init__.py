@@ -96,7 +96,7 @@ def get_status(host):
     """Look up the status of a certain host and return a string."""
     debug_print("Looking up Galera status of node %s." % (host))
     snmp_result = snmp(string_to_oid("galeraStatus"), host, STATUS_TIMEOUT)
-    if snmp_result is not "None":
+    if snmp_result is not None:
         return snmp_result
     else:
         return "unreachable"
@@ -106,7 +106,7 @@ def get_seqno(host):
     """Return the seqno of a certain host."""
     debug_print("Looking up database seqno of node %s." % (host))
     snmp_result = snmp(string_to_oid("galeraSeqno"), host, SEQNO_TIMEOUT)
-    if snmp_result is not "None":
+    if snmp_result is not None:
         return snmp_result
     else:
         return -1
