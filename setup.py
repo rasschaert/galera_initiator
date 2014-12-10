@@ -9,7 +9,7 @@ from setuptools import setup, find_packages
 
 setup(
     name='GaleraInitiator',
-    version='0.2.0',
+    version='0.3.0',
     description='Automatically join, bootstrap or recover a Galera cluster.',
     author='Kenny Rasschaert',
     author_email='kenny@kennyrasschaert.be',
