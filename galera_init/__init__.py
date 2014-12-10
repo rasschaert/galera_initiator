@@ -28,6 +28,8 @@ import time
 import netsnmp
 
 DEBUG = True
+STATUS_TIMEOUT = 1000000
+SEQNO_TIMEOUT = 6000000
 
 
 def debug_print(string):
@@ -81,12 +83,12 @@ def string_to_oid(name):
     return ".".join([oid_prefix, str(len(name))] + ascii_values)
 
 
-def snmp(oid, host):
+def snmp(oid, host, timeout=1000000):
     """Perform an SNMP lookup of an OID on a host, return the result."""
     debug_print("Quering SNMP agent on %s for OID '%s'." % (host, oid))
     var = netsnmp.Varbind(oid)
     result = netsnmp.snmpget(var, Version=2, DestHost=host, Community="public",
-                             Timeout=1000000, Retries=0)
+                             Timeout=timeout, Retries=0)
     debug_print("SNMP lookup returned result '%s'." % (result[0]))
     return result[0]
 
@@ -94,7 +96,7 @@ def snmp(oid, host):
 def get_status(host):
     """Look up the status of a certain host and return a string."""
     debug_print("Looking up Galera status of node %s." % (host))
-    snmp_result = snmp(string_to_oid("galeraStatus"), host)
+    snmp_result = snmp(string_to_oid("galeraStatus"), host. STATUS_TIMEOUT)
     if snmp_result is not "None":
         return snmp_result
     else:
@@ -104,7 +106,7 @@ def get_status(host):
 def get_seqno(host):
     """Return the seqno of a certain host."""
     debug_print("Looking up database seqno of node %s." % (host))
-    snmp_result = snmp(string_to_oid("galeraSeqno"), host)
+    snmp_result = snmp(string_to_oid("galeraSeqno"), host, SEQNO_TIMEOUT)
     if snmp_result is not "None":
         return snmp_result
     else:
@@ -149,8 +151,9 @@ def main():
         print("Local node is already active. Nothing to do.")
         exit_boostrapper()
     debug_print("Going to sleep for a while to prevent race conditions.")
-    # Sleep 2 seconds + 1 second for each node in the list
-    time.sleep(2 + len(nodes))
+    # Sleep the time it takes to get the seqno + the time it takes to get
+    # the status for each node in the list
+    time.sleep((STATUS_TIMEOUT + SEQNO_TIMEOUT) * len(nodes))
     eligible = True
     local_seqno = get_seqno(local_node)
     local_prio = float("inf")
