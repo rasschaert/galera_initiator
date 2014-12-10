@@ -76,17 +76,24 @@ def seqno():
     try:
         grastate_file = open(grastate_file_path)
     except IOError:
-        print(-1)
-        sys.exit(0)
+        default_seqno()
     # The grastate.dat file is technically not valid ini, because it doesn't
     # have a header. Prepend a header so ConfigParser doesn't notice.
     # http://stackoverflow.com/questions/2819696/
     grastate_ini = u'[grastate]\n'+''.join([x for x in grastate_file])
     config = ConfigParser.RawConfigParser()
     config.readfp(io.StringIO(grastate_ini))
-    # Look up and print the seqno.
-    print(config.get("grastate", "seqno"))
-    grastate_file.close()
+    try:
+        # Look up and print the seqno.
+        print(config.get("grastate", "seqno"))
+    # If the grastate.dat file exists but doesn't contain a seqno, use default.
+    except ConfigParser.NoOptionError:
+        default_seqno()
+
+
+def default_seqno():
+    """Print -1 when the real seqno can't be determined."""
+    print(-1)
     sys.exit(0)
 
 
