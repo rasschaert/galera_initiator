@@ -96,7 +96,7 @@ def snmp(oid, host, timeout=1000000):
 def get_status(host):
     """Look up the status of a certain host and return a string."""
     debug_print("Looking up Galera status of node %s." % (host))
-    snmp_result = snmp(string_to_oid("galeraStatus"), host. STATUS_TIMEOUT)
+    snmp_result = snmp(string_to_oid("galeraStatus"), host, STATUS_TIMEOUT)
     if snmp_result is not "None":
         return snmp_result
     else:
