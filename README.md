@@ -59,11 +59,11 @@ stopped       | mysqld is stopped
 There's a [Vagrant environment](https://github.com/rasschaert/vagrant-galera) that installs a Galera cluster fully automatically using these scripts.
 
 ###To-do
-These scripts currently assume that:
-- The wsrep_cluster_address and wsrep_node_address can be found in /etc/my.cnf.d/galera.cnf
-- Net-SNMP runs on each cluster node and has extensions called galeraStatus and galeraSeqno
+- Make these things configurable:
+  - The wsrep_cluster_address and wsrep_node_address can be found in /etc/my.cnf.d/galera.cnf
+  - Net-SNMP runs on each cluster node and has extensions called galeraStatus and galeraSeqno
+- Find alternative to submodule.check_output(), it was introduced in python 2.7 and CentOS 6 ships 2.6
 
-In a future release this will be configurable.
 
 ###Flowchart
 ![galera-initiation-logic](http://i.imgur.com/RXTZLnH.png)
