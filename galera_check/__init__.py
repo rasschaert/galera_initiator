@@ -96,8 +96,9 @@ def seqno():
 def recover_seqno():
     """Print -1 when the real seqno can't be determined."""
     if not is_mysqld_process_running():
-        output = subprocess.check_output(['/usr/bin/mysqld_safe',
-                                          '--wsrep-recover'])
+        proc = subprocess.Popen(['/usr/bin/mysqld_safe', '--wsrep-recover'],
+                                stdout=subprocess.PIPE)
+        output = proc.communicate()[0]
         for line in output.split('\n'):
             recovered_match = re.search(r"WSREP: Recovered position(.*)", line)
             if recovered_match:

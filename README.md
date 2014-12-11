@@ -62,8 +62,6 @@ There's a [Vagrant environment](https://github.com/rasschaert/vagrant-galera) th
 - Make these things configurable:
   - The wsrep_cluster_address and wsrep_node_address can be found in /etc/my.cnf.d/galera.cnf
   - Net-SNMP runs on each cluster node and has extensions called galeraStatus and galeraSeqno
-- Find alternative to submodule.check_output(), it was introduced in python 2.7 and CentOS 6 ships 2.6
-
 
 ###Flowchart
 ![galera-initiation-logic](http://i.imgur.com/RXTZLnH.png)
