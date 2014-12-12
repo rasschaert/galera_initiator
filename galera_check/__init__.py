@@ -27,6 +27,17 @@ def error_print(string):
     print("ERROR: " + string, file=sys.stderr)
 
 
+def safe_process(pid, attr):
+    """
+    Get process attributes safely, return attribute of psutil.Process object.
+
+    """
+    try:
+        return getattr(psutil.Process(pid), attr)
+    except psutil.error.NoSuchProcess:
+        return ""
+
+
 def is_boostrap_process_running(pid_list=psutil.get_pid_list()):
     """
     Check whether the mysql init script is running with the
@@ -34,18 +45,18 @@ def is_boostrap_process_running(pid_list=psutil.get_pid_list()):
 
     """
     return ['/bin/sh', '/etc/init.d/mysql', 'start',
-            '--wsrep-new-cluster'] in [psutil.Process(pid).cmdline for
+            '--wsrep-new-cluster'] in [safe_process(pid, "cmdline") for
                                        pid in pid_list]
 
 
 def is_mysqld_process_running(pid_list=psutil.get_pid_list()):
     """Check whether the mysqld process is running. Return a boolean."""
-    return "mysqld" in [psutil.Process(pid).name for pid in pid_list]
+    return "mysqld" in [safe_process(pid, "name") for pid in pid_list]
 
 
 def is_galera_init_process_running(pid_list=psutil.get_pid_list()):
     """Check whether the galera_init process is running. Return a boolean."""
-    return "galera_init" in [psutil.Process(pid).name for pid in pid_list]
+    return "galera_init" in [safe_process(pid, "name") for pid in pid_list]
 
 
 def status():
