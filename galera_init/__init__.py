@@ -116,21 +116,25 @@ def join_cluster():
     """Join an existing cluster."""
     # stub
     print("Joining cluster (by running '/etc/init.d/mysql start').")
-    exit_code = subprocess.call(["/etc/init.d/mysql", "start"])
-    debug_print("exit code is %s" % exit_code)
-    if not exit_code:
-        error_print("Joining cluster!")
-    return exit_code
+    proc = subprocess.Popen(["/etc/init.d/mysql", "start"],
+                            stdout=subprocess.PIPE)
+    print(proc.communicate()[0])
+    debug_print("return code is %s" % proc.returncode)
+    if not proc.returncode:
+        error_print("Joining cluster failed!")
+    return proc.returncode
 
 
 def bootstrap_cluster():
     """Bootstrap a new cluster."""
     print("Bootstrapping cluster (by running '/etc/init.d/mysql bootstrap').")
-    exit_code = subprocess.call(["/etc/init.d/mysql", "bootstrap"])
-    debug_print("exit code is %s" % exit_code)
-    if exit_code:
+    proc = subprocess.Popen(["/etc/init.d/mysql", "bootstrap"],
+                            stdout=subprocess.PIPE)
+    print(proc.communicate()[0])
+    debug_print("return code is %s" % proc.returncode)
+    if not proc.returncode:
         error_print("Bootstrapping failed!")
-    return exit_code
+    return proc.returncode
 
 
 def exit_script(code=0):
@@ -190,8 +194,9 @@ def main():
                     debug_print("Prio of %s is %s, local prio is %s." %
                                 (node, str(node_prio), str(local_prio)))
                     print(
-                        "Seqno of local node has been outbid. " +
-                        "Local node is no longer eligible for bootstrapping."
+                        "Local node does not have the highest rank among " +
+                        "those currently initiating and is no longer " +
+                        "eligible for bootstrapping."
                         )
                     eligible = False
                     break
