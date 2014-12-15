@@ -112,6 +112,22 @@ def get_seqno(host):
         return -1
 
 
+def mysqld_status_check(attempts):
+    """Attempt a number of times to ping mysqld, return result."""
+    debug_print("Checking status of mysqld.")
+    for iteration in range(attempts):
+        debug_print("Health check attempt number %d." % (iteration+1))
+        proc = subprocess.Popen(["/usr/bin/mysqladmin", "ping"],
+                                stdout=subprocess.PIPE)
+        print(proc.communicate()[0])
+        debug_print("return code is %s" % proc.returncode)
+        if proc.returncode == 0:
+            return 0
+        if (iteration + 1) < attempts:
+            time.sleep(1)
+    return proc.returncode
+
+
 def join_cluster():
     """Join an existing cluster."""
     # stub
@@ -122,7 +138,8 @@ def join_cluster():
     debug_print("return code is %s" % proc.returncode)
     if not proc.returncode:
         error_print("Joining cluster failed!")
-    return proc.returncode
+        return proc.returncode
+    return mysqld_status_check(10)
 
 
 def bootstrap_cluster():
@@ -134,7 +151,8 @@ def bootstrap_cluster():
     debug_print("return code is %s" % proc.returncode)
     if not proc.returncode:
         error_print("Bootstrapping failed!")
-    return proc.returncode
+        return proc.returncode
+    return mysqld_status_check(10)
 
 
 def exit_script(code=0):
@@ -149,7 +167,7 @@ def main():
     local_status = get_status(local_node)
     if not local_status == "initiating":
         if local_status == "stopped":
-            error_print("Something is wrong with the galera-check script.")
+            error_print("Something is wrong with the galera_status script.")
             exit_script(1)
         print("Local node is already active. Nothing to do.")
         exit_script()
