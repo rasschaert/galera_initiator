@@ -52,8 +52,8 @@ Status        | Meaning
 bootstrapping | mysqld is starting, bootstrapping a new cluster
 running       | mysqld is running, member of a cluster
 initiating    | galera_init is running, will possibly soon bootstrap or join a cluster
+locked        | galera_init is running and obtained a lock for looking up seqno's
 stopped       | mysqld is stopped
-
 
 ###Vagrant
 There's a [Vagrant environment](https://github.com/rasschaert/vagrant-galera) that installs a Galera cluster fully automatically using these scripts.
@@ -64,4 +64,4 @@ There's a [Vagrant environment](https://github.com/rasschaert/vagrant-galera) th
   - Net-SNMP runs on each cluster node and has extensions called galeraStatus and galeraSeqno
 
 ###Flowchart
-![galera-initiation-logic](http://i.imgur.com/RXTZLnH.png)
+![galera-initiation-logic](http://i.imgur.com/m5v8PHC.png)

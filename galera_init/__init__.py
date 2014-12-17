@@ -26,6 +26,7 @@ import subprocess
 import time
 import netsnmp
 import ConfigParser
+import os
 
 DEBUG = True
 STATUS_TIMEOUT = 1
@@ -136,7 +137,7 @@ def join_cluster():
                             stdout=subprocess.PIPE)
     print(proc.communicate()[0])
     debug_print("return code is %s" % proc.returncode)
-    if not proc.returncode:
+    if proc.returncode != 0:
         error_print("Joining cluster failed!")
         return proc.returncode
     return mysqld_status_check(10)
@@ -149,7 +150,7 @@ def bootstrap_cluster():
                             stdout=subprocess.PIPE)
     print(proc.communicate()[0])
     debug_print("return code is %s" % proc.returncode)
-    if not proc.returncode:
+    if proc.returncode != 0:
         error_print("Bootstrapping failed!")
         return proc.returncode
     return mysqld_status_check(10)
@@ -159,6 +160,40 @@ def exit_script(code=0):
     """Exit this script."""
     print("Exiting script.")
     sys.exit(code)
+
+
+def set_lock():
+    """Create a lock file in /var/lock/."""
+    debug_print("Creating lock file.")
+    open('/var/lock/galera_init', 'a').close()
+
+
+def clear_lock():
+    """Remove the lock file created by set_lock()."""
+    debug_print("Clearing lock file.")
+    try:
+        os.remove('/var/lock/galera_init')
+    except OSError:
+        pass
+
+
+def determine_eligibility(local_node, available_nodes):
+    """
+    Compare seqno of local node to that of available other nodes to
+    determine eligibility to bootstrap a new cluster. Return a boolean.
+    """
+    eligible = True
+    local_seqno = get_seqno(local_node)
+    debug_print("Local seqno is %s." % (local_seqno))
+    for node in available_nodes:
+        node_seqno = get_seqno(node)
+        debug_print("Seqno of %s is %s." % (node, node_seqno))
+        if node_seqno > local_seqno:
+            print("Seqno of local node has been outbid. Local node " +
+                  "is no longer eligible for bootstrapping.")
+            eligible = False
+            break
+    return eligible
 
 
 def main():
@@ -172,11 +207,9 @@ def main():
         print("Local node is already active. Nothing to do.")
         exit_script()
     debug_print("Going to sleep for a while to prevent race conditions.")
-    # Sleep the time it takes to get the seqno + the time it takes to get
-    # the status for each node in the list
-    time.sleep((STATUS_TIMEOUT + SEQNO_TIMEOUT) * len(nodes))
-    eligible = True
-    local_seqno = get_seqno(local_node)
+    # Sleep the time it takes to get the status for each node in the list
+    time.sleep(STATUS_TIMEOUT * len(nodes))
+    available_nodes = []
     local_prio = float("inf")
     for node_prio, node in enumerate(nodes):
         debug_print("Processing node %s, has prio %s." %
@@ -186,43 +219,38 @@ def main():
             debug_print("IP address %s is on this machine." % (node))
             debug_print("Local priority is %s." % (local_prio))
         else:
-            node_status = get_status(node)
-            debug_print("Status on node %s is %s." %
-                        (node, node_status))
-            if node_status == "running":
-                exit_script(join_cluster())
-            elif node_status == "bootstrapping":
-                print("Waiting for %s to finish bootstrapping." % (node))
-                time.sleep(10)
-                exit_script(join_cluster())
-            elif node_status == "unreachable":
-                # If a node is unreachable, we can't ask for its seqno
-                pass
-            elif node_status == "stopped" or node_status == "initiating":
-                node_seqno = get_seqno(node)
-                debug_print("seqno for %s is %s." % (node, node_seqno))
-                if node_seqno > local_seqno:
-                    debug_print("Seqno of %s is %s Local seqno is %s" %
-                                (node, node_seqno, local_seqno))
-                    print("Seqno of local node has been outbid. Local node " +
-                          "is no longer eligible for bootstrapping.")
-                    eligible = False
-                    break
-                elif local_prio > node_prio and node_status == "initiating":
-                    debug_print("Prio of %s is %s, local prio is %s." %
-                                (node, str(node_prio), str(local_prio)))
-                    print(
-                        "Local node does not have the highest rank among " +
-                        "those currently initiating and is no longer " +
-                        "eligible for bootstrapping."
-                        )
-                    eligible = False
-                    break
-    debug_print("Exited node processing loop.")
+            repeat = True
+            while repeat:
+                node_status = get_status(node)
+                debug_print("Status on node %s is %s." %
+                            (node, node_status))
+                if node_status == "locked":
+                    time.sleep(2)
+                elif node_status == "initiating":
+                    if node_prio < local_prio:
+                        time.sleep(2)
+                    else:
+                        available_nodes.append(node)
+                        repeat = False
+                elif node_status == "stopped":
+                    available_nodes.append(node)
+                    repeat = False
+                elif node_status == "running":
+                    exit_script(join_cluster())
+                    repeat = False
+                elif node_status == "bootstrapping":
+                    print("Waiting for %s to finish bootstrapping." % (node))
+                    time.sleep(5)
+                    exit_script(join_cluster())
+                elif node_status == "unreachable":
+                    repeat = False
+    set_lock()
+    eligible = determine_eligibility(local_node, available_nodes)
+    success = 0
     if eligible:
-        exit_script(bootstrap_cluster())
-    else:
-        exit_script()
+        success = bootstrap_cluster()
+    clear_lock()
+    exit_script(success)
 
 
 if __name__ == '__main__':

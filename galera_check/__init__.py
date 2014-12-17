@@ -12,6 +12,7 @@ import ConfigParser
 import io
 import subprocess
 import re
+import os.path
 
 DEBUG = True
 
@@ -59,6 +60,14 @@ def is_galera_init_process_running(pid_list=psutil.get_pid_list()):
     return "galera_init" in [safe_process(pid, "name") for pid in pid_list]
 
 
+def lock_file_exists():
+    """
+    Check if a lock file exists at /var/lock/galera_init.
+    Return a boolean.
+    """
+    return os.path.isfile('/var/lock/galera_init')
+
+
 def status():
     """
     Print a word describing the status of mysqld or the initiator script.
@@ -69,17 +78,18 @@ def status():
     # Check if one of them looks like a bootstrap process.
     if is_boostrap_process_running(pid_list):
         print("bootstrapping")
-        sys.exit(0)
     # Check if one of them looks like a mysqld process.
-    if is_mysqld_process_running(pid_list):
+    elif is_mysqld_process_running(pid_list):
         print("running")
-        sys.exit(0)
+    # Check if a lock file exists
+    elif lock_file_exists():
+        print("locked")
     # Check if one of them looks like a galera_init process.
-    if is_galera_init_process_running(pid_list):
+    elif is_galera_init_process_running(pid_list):
         print("initiating")
-        sys.exit(0)
     # If none of the above is true, the status is simply stopped.
-    print("stopped")
+    else:
+        print("stopped")
     sys.exit(0)
 
 
