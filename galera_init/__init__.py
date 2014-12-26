@@ -97,14 +97,18 @@ def get_status(host):
     """Look up the status of a certain host and return a string."""
     debug_print("Looking up Galera status of node %s." % (host))
     snmp_result = snmp(string_to_oid("galeraStatus"), host, STATUS_TIMEOUT)
-    if snmp_result is not None:
+    if snmp_result is not None and snmp_result != "":
         return snmp_result
     else:
         return "unreachable"
 
 
-def get_seqno(host):
+def get_seqno(host=None):
     """Return the seqno of a certain host."""
+    if host is None:
+        proc = subprocess.Popen(["/usr/bin/galera_seqno"],
+                                stdout=subprocess.PIPE)
+        return proc.communicate()[0]
     debug_print("Looking up database seqno of node %s." % (host))
     snmp_result = snmp(string_to_oid("galeraSeqno"), host, SEQNO_TIMEOUT)
     if snmp_result is not None:
@@ -118,15 +122,16 @@ def mysqld_status_check(attempts):
     debug_print("Checking status of mysqld.")
     for iteration in range(attempts):
         debug_print("Health check attempt number %d." % (iteration+1))
-        proc = subprocess.Popen(["/usr/bin/mysqladmin", "ping"],
-                                stdout=subprocess.PIPE)
-        print(proc.communicate()[0])
-        debug_print("return code is %s" % proc.returncode)
-        if proc.returncode == 0:
+        devnull = open(os.devnull, 'w')
+        returncode = subprocess.call(["/usr/bin/mysqladmin", "ping"],
+                                     stdout=devnull, stderr=subprocess.STDOUT)
+        devnull.close()
+        debug_print("Health check return code is %s" % returncode)
+        if returncode == 0:
             return 0
         if (iteration + 1) < attempts:
             time.sleep(1)
-    return proc.returncode
+    return returncode
 
 
 def join_cluster():
@@ -177,13 +182,13 @@ def clear_lock():
         pass
 
 
-def determine_eligibility(local_node, available_nodes):
+def determine_eligibility(available_nodes):
     """
     Compare seqno of local node to that of available other nodes to
     determine eligibility to bootstrap a new cluster. Return a boolean.
     """
     eligible = True
-    local_seqno = get_seqno(local_node)
+    local_seqno = get_seqno()
     debug_print("Local seqno is %s." % (local_seqno))
     for node in available_nodes:
         node_seqno = get_seqno(node)
@@ -199,6 +204,7 @@ def determine_eligibility(local_node, available_nodes):
 def main():
     """The main function."""
     local_node, nodes = parse_config()
+    time.sleep(5)
     local_status = get_status(local_node)
     if not local_status == "initiating":
         if local_status == "stopped":
@@ -245,7 +251,7 @@ def main():
                 elif node_status == "unreachable":
                     repeat = False
     set_lock()
-    eligible = determine_eligibility(local_node, available_nodes)
+    eligible = determine_eligibility(available_nodes)
     success = 0
     if eligible:
         success = bootstrap_cluster()

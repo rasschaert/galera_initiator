@@ -31,7 +31,6 @@ def error_print(string):
 def safe_process(pid, attr):
     """
     Get process attributes safely, return attribute of psutil.Process object.
-
     """
     try:
         return getattr(psutil.Process(pid), attr)
@@ -43,11 +42,19 @@ def is_boostrap_process_running(pid_list=psutil.get_pid_list()):
     """
     Check whether the mysql init script is running with the
     --wsrep-new-cluster option. Return a boolean.
-
     """
     return ['/bin/sh', '/etc/init.d/mysql', 'start',
             '--wsrep-new-cluster'] in [safe_process(pid, "cmdline") for
                                        pid in pid_list]
+
+
+def is_recover_process_running(pid_list=psutil.get_pid_list()):
+    """
+    Check whether the mysqld process is running with the --wsrep-recover
+    option. Return a boolean.
+    """
+    return ['/bin/sh', '/usr/bin/mysqld_safe', '--wsrep-recover'] in \
+           [safe_process(pid, "cmdline") for pid in pid_list]
 
 
 def is_mysqld_process_running(pid_list=psutil.get_pid_list()):
@@ -71,20 +78,24 @@ def lock_file_exists():
 def status():
     """
     Print a word describing the status of mysqld or the initiator script.
-
     """
     # Get a list of all currently running processes.
     pid_list = psutil.get_pid_list()
-    # Check if one of them looks like a bootstrap process.
+    # Check if a process looks like a bootstrap process.
     if is_boostrap_process_running(pid_list):
         print("bootstrapping")
-    # Check if one of them looks like a mysqld process.
+    # Check if a process looks like a recover process.
+    elif is_recover_process_running():
+        # It doesn't really mean that the local machine is locked,
+        # but that another node probably has the lock.
+        print("locked")
+    # Check if a process looks like a galera_init process.
     elif is_mysqld_process_running(pid_list):
         print("running")
     # Check if a lock file exists
     elif lock_file_exists():
         print("locked")
-    # Check if one of them looks like a galera_init process.
+    # Check if a process looks like a galera_init process.
     elif is_galera_init_process_running(pid_list):
         print("initiating")
     # If none of the above is true, the status is simply stopped.
