@@ -137,10 +137,10 @@ def mysqld_status_check(attempts):
 def join_cluster():
     """Join an existing cluster."""
     # stub
-    print("Joining cluster (by running '/etc/init.d/mysql start').")
+    debug_print("Joining cluster ('/etc/init.d/mysql start').")
     proc = subprocess.Popen(["/etc/init.d/mysql", "start"],
                             stdout=subprocess.PIPE)
-    print(proc.communicate()[0])
+    debug_print(proc.communicate()[0])
     debug_print("return code is %s" % proc.returncode)
     if proc.returncode != 0:
         error_print("Joining cluster failed!")
@@ -150,10 +150,10 @@ def join_cluster():
 
 def bootstrap_cluster():
     """Bootstrap a new cluster."""
-    print("Bootstrapping cluster (by running '/etc/init.d/mysql bootstrap').")
+    debug_print("Bootstrapping cluster ('/etc/init.d/mysql bootstrap').")
     proc = subprocess.Popen(["/etc/init.d/mysql", "bootstrap"],
                             stdout=subprocess.PIPE)
-    print(proc.communicate()[0])
+    debug_print(proc.communicate()[0])
     debug_print("return code is %s" % proc.returncode)
     if proc.returncode != 0:
         error_print("Bootstrapping failed!")
@@ -163,7 +163,7 @@ def bootstrap_cluster():
 
 def exit_script(code=0):
     """Exit this script."""
-    print("Exiting script.")
+    debug_print("Exiting script.")
     sys.exit(code)
 
 
@@ -188,13 +188,15 @@ def determine_eligibility(available_nodes):
     determine eligibility to bootstrap a new cluster. Return a boolean.
     """
     eligible = True
+    if not available_nodes:
+        return eligible
     local_seqno = get_seqno()
     debug_print("Local seqno is %s." % (local_seqno))
     for node in available_nodes:
         node_seqno = get_seqno(node)
         debug_print("Seqno of %s is %s." % (node, node_seqno))
         if node_seqno > local_seqno:
-            print("Seqno of local node has been outbid. Local node " +
+            debug_print("Seqno of local node has been outbid. Local node " +
                   "is no longer eligible for bootstrapping.")
             eligible = False
             break
@@ -210,7 +212,7 @@ def main():
         if local_status == "stopped":
             error_print("Something is wrong with the galera_status script.")
             exit_script(1)
-        print("Local node is already active. Nothing to do.")
+        debug_print("Local node is already active. Nothing to do.")
         exit_script()
     debug_print("Going to sleep for a while to prevent race conditions.")
     # Sleep the time it takes to get the status for each node in the list
@@ -245,7 +247,8 @@ def main():
                     exit_script(join_cluster())
                     repeat = False
                 elif node_status == "bootstrapping":
-                    print("Waiting for %s to finish bootstrapping." % (node))
+                    debug_print("Waiting for %s to finish bootstrapping." %
+                                (node))
                     time.sleep(5)
                     exit_script(join_cluster())
                 elif node_status == "unreachable":
